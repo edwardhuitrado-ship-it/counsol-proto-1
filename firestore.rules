@@ -1,0 +1,101 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'jnieves0402@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isVendor() {
+      return isSignedIn() && (
+        isAdmin() ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'vendor')
+      );
+    }
+
+    function isUser(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow get: if isSignedIn() && (isUser(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && isUser(userId) && (
+        incoming().role in ['vendor', 'end_user'] || isAdmin()
+      );
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        (isUser(userId) && incoming().role == existing().role)
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Solar Products Catalog
+    match /products/{productId} {
+      allow read: if isSignedIn();
+      allow create: if isValidId(productId) && (
+        isAdmin() || (isVendor() && incoming().vendorId == request.auth.uid)
+      );
+      allow update: if isValidId(productId) && (
+        isAdmin() || (isVendor() && existing().vendorId == request.auth.uid && incoming().vendorId == existing().vendorId)
+      );
+      allow delete: if isValidId(productId) && (
+        isAdmin() || (isVendor() && existing().vendorId == request.auth.uid)
+      );
+    }
+
+    // Equipment Requisitions (End-Users / Project Engineers)
+    match /requisitions/{requisitionId} {
+      allow read: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if isValidId(requisitionId) && isSignedIn() && incoming().userId == request.auth.uid;
+      allow update: if isValidId(requisitionId) && (
+        isAdmin() || (isSignedIn() && existing().userId == request.auth.uid && incoming().userId == existing().userId)
+      );
+      allow delete: if isValidId(requisitionId) && isAdmin();
+    }
+
+    // Restock Shipments (Vendors)
+    match /shipments/{shipmentId} {
+      allow read: if isSignedIn() && (isAdmin() || resource.data.vendorId == request.auth.uid);
+      allow create: if isValidId(shipmentId) && (isAdmin() || (isVendor() && incoming().vendorId == request.auth.uid));
+      allow update: if isValidId(shipmentId) && (
+        isAdmin() || (isVendor() && existing().vendorId == request.auth.uid && incoming().vendorId == existing().vendorId)
+      );
+      allow delete: if isValidId(shipmentId) && isAdmin();
+    }
+
+    // Immutable Stock Movement Audit Ledger
+    match /stockMovements/{movementId} {
+      allow read: if isSignedIn();
+      allow create: if isValidId(movementId) && isSignedIn();
+      allow update, delete: if false;
+    }
+
+    // Admin Markers
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Connection Health Check
+    match /test/{testId} {
+      allow read, write: if true;
+    }
+  }
+}

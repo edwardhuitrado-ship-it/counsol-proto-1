@@ -1,0 +1,145 @@
+{
+  "entities": {
+    "userProfile": {
+      "title": "UserProfile",
+      "description": "User account profile defining role-based access control for counSOL america",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 150 },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "role": { "type": "string", "enum": ["admin", "vendor", "end_user"] },
+        "companyName": { "type": "string", "maxLength": 150 },
+        "status": { "type": "string", "enum": ["active", "pending", "suspended"] },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "email", "role"]
+    },
+    "product": {
+      "title": "Product",
+      "description": "Solar technology inventory item with unique SKU and warehouse stock",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "sku": { "type": "string", "maxLength": 64, "pattern": "^[A-Z0-9\\-]+$" },
+        "name": { "type": "string", "maxLength": 150 },
+        "category": { "type": "string", "maxLength": 64 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "specifications": { "type": "string", "maxLength": 500 },
+        "stockQuantity": { "type": "number" },
+        "allocatedQuantity": { "type": "number" },
+        "reorderPoint": { "type": "number" },
+        "unitCost": { "type": "number" },
+        "unitPrice": { "type": "number" },
+        "vendorId": { "type": "string", "maxLength": 128 },
+        "vendorName": { "type": "string", "maxLength": 150 },
+        "warehouseLocation": { "type": "string", "maxLength": 64 },
+        "status": { "type": "string", "enum": ["in_stock", "low_stock", "out_of_stock", "discontinued"] },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["sku", "name", "category", "stockQuantity"]
+    },
+    "requisition": {
+      "title": "Requisition",
+      "description": "Solar equipment requisition or project order submitted by End-Users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "requisitionNumber": { "type": "string", "maxLength": 64 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "maxLength": 150 },
+        "userName": { "type": "string", "maxLength": 100 },
+        "projectName": { "type": "string", "maxLength": 150 },
+        "jobSiteAddress": { "type": "string", "maxLength": 250 },
+        "requiredDate": { "type": "string", "maxLength": 64 },
+        "status": { "type": "string", "enum": ["pending", "approved", "allocated", "shipped", "fulfilled", "rejected"] },
+        "itemsSummary": { "type": "string", "maxLength": 2000 },
+        "totalItemsCount": { "type": "number" },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["requisitionNumber", "userId", "status"]
+    },
+    "shipment": {
+      "title": "Shipment",
+      "description": "Vendor restocking shipment or supply delivery for solar equipment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "shipmentNumber": { "type": "string", "maxLength": 64 },
+        "vendorId": { "type": "string", "maxLength": 128 },
+        "vendorName": { "type": "string", "maxLength": 150 },
+        "carrier": { "type": "string", "maxLength": 100 },
+        "trackingNumber": { "type": "string", "maxLength": 100 },
+        "estimatedDelivery": { "type": "string", "maxLength": 64 },
+        "status": { "type": "string", "enum": ["draft", "dispatched", "in_transit", "delivered", "received_into_stock"] },
+        "itemsSummary": { "type": "string", "maxLength": 2000 },
+        "totalUnits": { "type": "number" },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["shipmentNumber", "vendorId", "status"]
+    },
+    "stockMovement": {
+      "title": "StockMovement",
+      "description": "Immutable inventory transaction audit log entry for solar products",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "productId": { "type": "string", "maxLength": 128 },
+        "sku": { "type": "string", "maxLength": 64 },
+        "movementType": { "type": "string", "enum": ["inbound", "outbound", "adjustment", "audit_cycle", "damaged", "return"] },
+        "quantityDelta": { "type": "number" },
+        "previousQuantity": { "type": "number" },
+        "newQuantity": { "type": "number" },
+        "referenceId": { "type": "string", "maxLength": 128 },
+        "operatorEmail": { "type": "string", "maxLength": 150 },
+        "reason": { "type": "string", "maxLength": 250 },
+        "timestamp": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["sku", "movementType", "quantityDelta"]
+    },
+    "adminRecord": {
+      "title": "AdminRecord",
+      "description": "Reference marker document establishing administrator privileges",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 150 },
+        "role": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "userProfile" },
+      "description": "User profiles with role assignments (admin, vendor, end_user)"
+    },
+    "/products/{productId}": {
+      "schema": { "$ref": "product" },
+      "description": "Solar technology product catalog with unique SKU and inventory levels"
+    },
+    "/requisitions/{requisitionId}": {
+      "schema": { "$ref": "requisition" },
+      "description": "Solar project orders and equipment requests created by end-users"
+    },
+    "/shipments/{shipmentId}": {
+      "schema": { "$ref": "shipment" },
+      "description": "Inbound vendor shipments and restock purchase orders"
+    },
+    "/stockMovements/{movementId}": {
+      "schema": { "$ref": "stockMovement" },
+      "description": "Inventory movement and transaction audit ledger"
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "adminRecord" },
+      "description": "Trusted admin registry document matching user UID or bootstrapped admin"
+    }
+  }
+}

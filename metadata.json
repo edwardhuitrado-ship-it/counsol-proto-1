@@ -1,0 +1,6 @@
+{
+  "name": "counSOL america - Solar Inventory Management System",
+  "description": "Enterprise solar technology inventory management system with unique SKU tracking and role-based access control for Administrative, End-User, and Vendor accounts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
