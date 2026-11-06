@@ -17,6 +17,15 @@ import {
   History,
   CheckCircle2,
   Download,
+  FileSpreadsheet,
+  ListChecks,
+  ShieldCheck,
+  QrCode,
+  MapPin,
+  Award,
+  FolderGit2,
+  Cpu,
+  Inbox,
 } from 'lucide-react';
 import {
   Product,
@@ -34,6 +43,33 @@ import { StockAdjustmentModal } from './StockAdjustmentModal';
 import { RequisitionDetailModal } from './RequisitionDetailModal';
 import { ShipmentModal } from './ShipmentModal';
 import { SkuGeneratorModal } from './SkuGeneratorModal';
+import { TotalFinancesView } from './TotalFinancesView';
+import { ExcelSkuImportModal } from './ExcelSkuImportModal';
+import { IntakeOperationsView } from './IntakeOperationsView';
+import { PartnersNetworkView } from './PartnersNetworkView';
+import { SafeHarborComplianceView } from './SafeHarborComplianceView';
+import { SerialTraceabilityView } from './SerialTraceabilityView';
+import { SiteVisitOperationsView } from './SiteVisitOperationsView';
+import { ScorecardsRiskView } from './ScorecardsRiskView';
+import { DocumentsAutomationView } from './DocumentsAutomationView';
+import { PlatformAdminView } from './PlatformAdminView';
+import { SEED_OUTBOUND_SHIPMENTS } from '../data/backlogSeedData';
+
+export type AdminTab =
+  | 'catalog'
+  | 'finances'
+  | 'intake'
+  | 'partners'
+  | 'compliance'
+  | 'serials'
+  | 'site_visits'
+  | 'scorecards'
+  | 'documents'
+  | 'admin_sys'
+  | 'requisitions'
+  | 'shipments'
+  | 'audit'
+  | 'users';
 
 interface AdminViewProps {
   products: Product[];
@@ -74,9 +110,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
   onReceiveShipment,
   onUpdateUserRole,
 }) => {
-  const [activeTab, setActiveTab] = useState<
-    'catalog' | 'requisitions' | 'shipments' | 'audit' | 'users'
-  >('catalog');
+  const [activeTab, setActiveTab] = useState<AdminTab>('catalog');
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -90,6 +124,32 @@ export const AdminView: React.FC<AdminViewProps> = ({
   const [selectedRequisition, setSelectedRequisition] = useState<Requisition | null>(null);
   const [showShipmentModal, setShowShipmentModal] = useState(false);
   const [showSkuGenerator, setShowSkuGenerator] = useState(false);
+  const [showExcelImport, setShowExcelImport] = useState(false);
+
+  // Bulk import from Excel
+  const handleBulkImportProducts = async (
+    newProducts: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>[]
+  ) => {
+    for (const item of newProducts) {
+      const existing = products.find(
+        (p) => p.sku.toUpperCase() === item.sku.toUpperCase()
+      );
+      if (existing) {
+        await onUpdateProduct(
+          existing.id,
+          {
+            stockQuantity: existing.stockQuantity + item.stockQuantity,
+            unitCost: item.unitCost,
+            unitPrice: item.unitPrice,
+            specifications: item.specifications || existing.specifications,
+          },
+          'Excel bulk import stock increment'
+        );
+      } else {
+        await onAddProduct(item);
+      }
+    }
+  };
 
   // Metric Computations
   const totalSkus = products.length;
@@ -188,6 +248,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
           <div className="flex items-center gap-2 flex-wrap">
             <button
+              onClick={() => setShowExcelImport(true)}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 rounded-lg transition-colors shadow-sm"
+              title="Import Excel or CSV files of SKUs with drag-and-drop panel"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-400" /> Import Excel SKUs
+            </button>
+            <button
               onClick={exportCsv}
               className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 rounded-lg transition-colors"
             >
@@ -283,9 +350,25 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
       {/* Navigation Tabs */}
       <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto text-xs font-semibold">
+        {/* Total Finances Tab - Explicit User Request */}
+        <button
+          onClick={() => setActiveTab('finances')}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg transition-all ${
+            activeTab === 'finances'
+              ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <DollarSign className="w-4 h-4 text-emerald-400" />
+          <span>Total Finances</span>
+          <span className="px-1.5 py-0.2 rounded text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+            Live
+          </span>
+        </button>
+
         <button
           onClick={() => setActiveTab('catalog')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg transition-all ${
             activeTab === 'catalog'
               ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
               : 'text-slate-400 hover:text-white hover:bg-slate-800'
@@ -296,15 +379,111 @@ export const AdminView: React.FC<AdminViewProps> = ({
         </button>
 
         <button
+          onClick={() => setActiveTab('intake')}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg transition-all ${
+            activeTab === 'intake'
+              ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <Inbox className="w-4 h-4" />
+          <span>Intake & Onboarding</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('partners')}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg transition-all ${
+            activeTab === 'partners'
+              ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          <span>Partners Directory</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('compliance')}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg transition-all ${
+            activeTab === 'compliance'
+              ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4" />
+          <span>Safe Harbor 7-Point</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('serials')}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg transition-all ${
+            activeTab === 'serials'
+              ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <QrCode className="w-4 h-4" />
+          <span>Serials & Logistics</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('site_visits')}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg transition-all ${
+            activeTab === 'site_visits'
+              ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <MapPin className="w-4 h-4" />
+          <span>Site Visits QA</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('scorecards')}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg transition-all ${
+            activeTab === 'scorecards'
+              ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <Award className="w-4 h-4" />
+          <span>Scorecards & Risk</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('documents')}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg transition-all ${
+            activeTab === 'documents'
+              ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <FolderGit2 className="w-4 h-4" />
+          <span>Drive & Automation</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('admin_sys')}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg transition-all ${
+            activeTab === 'admin_sys'
+              ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <Cpu className="w-4 h-4" />
+          <span>Security & APIs</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('requisitions')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg transition-all ${
             activeTab === 'requisitions'
               ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
               : 'text-slate-400 hover:text-white hover:bg-slate-800'
           }`}
         >
           <FileText className="w-4 h-4" />
-          <span>Project Requisitions</span>
+          <span>Requisitions</span>
           {pendingRequisitions.length > 0 && (
             <span className="px-1.5 py-0.2 rounded-full bg-cyan-500 text-slate-950 font-black text-[10px]">
               {pendingRequisitions.length}
@@ -314,38 +493,38 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
         <button
           onClick={() => setActiveTab('shipments')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg transition-all ${
             activeTab === 'shipments'
               ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
               : 'text-slate-400 hover:text-white hover:bg-slate-800'
           }`}
         >
           <Truck className="w-4 h-4" />
-          <span>Vendor Restock Shipments ({shipments.length})</span>
+          <span>Vendor Shipments ({shipments.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('audit')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg transition-all ${
             activeTab === 'audit'
               ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
               : 'text-slate-400 hover:text-white hover:bg-slate-800'
           }`}
         >
           <History className="w-4 h-4" />
-          <span>Stock Movement Ledger</span>
+          <span>Audit Ledger</span>
         </button>
 
         <button
           onClick={() => setActiveTab('users')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg transition-all ${
             activeTab === 'users'
               ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
               : 'text-slate-400 hover:text-white hover:bg-slate-800'
           }`}
         >
           <Users className="w-4 h-4" />
-          <span>RBAC & Accounts</span>
+          <span>RBAC Users</span>
         </button>
       </div>
 
@@ -850,6 +1029,44 @@ export const AdminView: React.FC<AdminViewProps> = ({
         </div>
       )}
 
+      {/* TAB: TOTAL FINANCES - EXPLICIT USER REQUEST */}
+      {activeTab === 'finances' && (
+        <TotalFinancesView
+          products={products}
+          requisitions={requisitions}
+          outboundShipments={SEED_OUTBOUND_SHIPMENTS}
+        />
+      )}
+
+      {/* TAB: INTAKE & ONBOARDING (US-01 - US-05) */}
+      {activeTab === 'intake' && <IntakeOperationsView />}
+
+      {/* TAB: PARTNER DIRECTORY (US-06 - US-13) */}
+      {activeTab === 'partners' && <PartnersNetworkView currentRole="admin" />}
+
+      {/* TAB: SAFE HARBOR 7-POINT COMPLIANCE (US-14 - US-21) */}
+      {activeTab === 'compliance' && <SafeHarborComplianceView />}
+
+      {/* TAB: SERIAL TRACEABILITY & FREIGHT (US-22 - US-29) */}
+      {activeTab === 'serials' && <SerialTraceabilityView />}
+
+      {/* TAB: SITE VISITS QA (US-30 - US-35) */}
+      {activeTab === 'site_visits' && <SiteVisitOperationsView />}
+
+      {/* TAB: SCORECARDS & RISK (US-36 - US-41) */}
+      {activeTab === 'scorecards' && <ScorecardsRiskView />}
+
+      {/* TAB: DRIVE & AUTOMATION (US-42 - US-45) */}
+      {activeTab === 'documents' && <DocumentsAutomationView />}
+
+      {/* TAB: SECURITY & OPEN APIS (US-46 - US-50) */}
+      {activeTab === 'admin_sys' && (
+        <PlatformAdminView
+          currentRole="admin"
+          onSwitchRole={(r) => onUpdateUserRole('demo-user', r)}
+        />
+      )}
+
       {/* Modals */}
       {showProductModal && (
         <ProductFormModal
@@ -905,6 +1122,15 @@ export const AdminView: React.FC<AdminViewProps> = ({
             setShowProductModal(true);
           }}
           onClose={() => setShowSkuGenerator(false)}
+        />
+      )}
+
+      {/* Excel SKU Import Modal (Explicit User Request) */}
+      {showExcelImport && (
+        <ExcelSkuImportModal
+          existingProducts={products}
+          onImportProducts={handleBulkImportProducts}
+          onClose={() => setShowExcelImport(false)}
         />
       )}
     </div>

@@ -20,7 +20,11 @@ interface NavbarProps {
   onOpenSkuGen?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ cartCount, onOpenCart, onOpenSkuGen }) => {
+export const Navbar: React.FC<NavbarProps> = ({
+  cartCount,
+  onOpenCart,
+  onOpenSkuGen,
+}) => {
   const { userProfile, role, switchDemoRole, currentUser, signInWithGoogle, signOut } = useAuth();
   const [showRoleMenu, setShowRoleMenu] = React.useState(false);
 
